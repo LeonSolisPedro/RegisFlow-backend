@@ -1,7 +1,7 @@
 import express from "express"
 import db from "./db.mjs"
 import cors from "cors"
-import { body } from "express-validator"
+import { body, param } from "express-validator"
 import validation from "./validation.mjs"
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
@@ -40,10 +40,12 @@ app.post("/api/login", [
   try {
     const response = await db.query(sql, [email])
     const user = response[0].at(0) ?? null;
-    if(user === null)
+    if (user === null)
       return res.status(401).json({ message: 'Invalid credentials' })
+    if (user.status === "blocked")
+      return res.status(401).json({ message: 'Your account is blocked' })
     const match = await bcrypt.compare(password, user.password);
-    if(!match)
+    if (!match)
       return res.status(401).json({ message: 'Invalid credentials' })
 
     const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
@@ -58,8 +60,44 @@ app.post("/api/login", [
 })
 
 //Here's the CRUD
-app.get("/api/test", authorize, async (req, res) => {
-  return res.status(200).json({message: `Hola mundo!: ${req.user.name}`})
+app.get("/api/users", authorize, async (req, res) => {
+  const sql = 'SELECT * FROM users';
+  const response = await db.query(sql)
+  const users = response[0].map(x => ({
+    id: x.id,
+    name: x.name,
+    email: x.email,
+    lastlogin: x.lastlogin,
+    registrationdate: x.registrationdate,
+    status: x.status
+  }))
+  return res.status(200).json(users)
+})
+
+
+app.delete("/api/users/:id",[param("id").isNumeric()] ,validation,authorize, async (req, res) => {
+  const { id } = req.params;
+  const sql = "DELETE FROM users WHERE id=?"
+  await db.query(sql, [id])
+  return res.status(200).send()
+})
+
+app.post("/api/users/block/:id",[param("id").isNumeric()] ,validation,authorize, async (req, res) => {
+  const { id } = req.params;
+  const sql = "UPDATE users SET status = 'blocked' WHERE id = ?"
+  const response = await db.query(sql, [id])
+  if(response[0].affectedRows === 0)
+    return res.status(404).json({ message: 'User not found' });
+  return res.status(200).send()
+})
+
+app.post("/api/users/unblock/:id",[param("id").isNumeric()] ,validation,authorize, async (req, res) => {
+  const { id } = req.params;
+  const sql = "UPDATE users SET status = 'active' WHERE id = ?"
+  const response = await db.query(sql, [id])
+  if(response[0].affectedRows === 0)
+    return res.status(404).json({ message: 'User not found' });
+  return res.status(200).send()
 })
 
 const port = 3000;
