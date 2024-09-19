@@ -4,7 +4,8 @@ const db = mysql.createPool({
   host: 'localhost',
   user: 'root',
   password: 'my-secret-pw',
-  database: 'regisflow'
+  database: 'regisflow',
+  timezone: 'Z'
 });
 
 export default db;

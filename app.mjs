@@ -1,7 +1,7 @@
 import express from "express"
 import db from "./db.mjs"
 import cors from "cors"
-import { body, param } from "express-validator"
+import { body } from "express-validator"
 import validation from "./validation.mjs"
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
@@ -75,28 +75,24 @@ app.get("/api/users", authorize, async (req, res) => {
 })
 
 
-app.delete("/api/users/:id",[param("id").isNumeric()] ,validation,authorize, async (req, res) => {
-  const { id } = req.params;
-  const sql = "DELETE FROM users WHERE id=?"
-  await db.query(sql, [id])
+app.delete("/api/users",[body("ids").isArray()] ,validation,authorize, async (req, res) => {
+  const { ids } = req.body;
+  const sql = "DELETE FROM users WHERE id IN (?)"
+  await db.query(sql, [ids])
   return res.status(200).send()
 })
 
-app.post("/api/users/block/:id",[param("id").isNumeric()] ,validation,authorize, async (req, res) => {
-  const { id } = req.params;
-  const sql = "UPDATE users SET status = 'blocked' WHERE id = ?"
-  const response = await db.query(sql, [id])
-  if(response[0].affectedRows === 0)
-    return res.status(404).json({ message: 'User not found' });
+app.post("/api/users/block",[body("ids").isArray()] ,validation,authorize, async (req, res) => {
+  const { ids } = req.body;
+  const sql = "UPDATE users SET status = 'blocked' WHERE id IN (?)"
+  await db.query(sql, [ids])
   return res.status(200).send()
 })
 
-app.post("/api/users/unblock/:id",[param("id").isNumeric()] ,validation,authorize, async (req, res) => {
-  const { id } = req.params;
-  const sql = "UPDATE users SET status = 'active' WHERE id = ?"
-  const response = await db.query(sql, [id])
-  if(response[0].affectedRows === 0)
-    return res.status(404).json({ message: 'User not found' });
+app.post("/api/users/unblock",[body("ids").isArray()] ,validation,authorize, async (req, res) => {
+  const { ids } = req.body;
+  const sql = "UPDATE users SET status = 'active' WHERE id IN (?)"
+  await db.query(sql, [ids])
   return res.status(200).send()
 })
 
