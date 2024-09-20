@@ -11,6 +11,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.get("/", (req, res) => {
+  return res.send("Hello world!")
+})
+
 
 app.post('/api/register', [
   body('name').notEmpty(),
@@ -96,7 +100,7 @@ app.post("/api/users/unblock",[body("ids").isArray()] ,validation,authorize, asy
   return res.status(200).send()
 })
 
-const port = 3000;
+const port = 8080;
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
